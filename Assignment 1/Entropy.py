@@ -1,4 +1,5 @@
 import sys
+import math
 
 ALPHABET = [' ', 'ა', 'ბ', 'გ', 'დ', 'ე', 'ვ', 'ზ', 'თ', 'ი', 'კ', 'ლ', 'მ', 'ნ', 'ო', 'პ', 'ჟ', 'რ', 'ს', 'ტ', 'უ',
             'ფ', 'ქ', 'ღ', 'ყ', 'შ', 'ჩ', 'ც', 'ძ', 'წ', 'ჭ', 'ხ', 'ჯ', 'ჰ']
@@ -95,8 +96,31 @@ class ProbabilityCounter:
         return self.items.keys()
 
 
-def format_probability(probability):
-    return str(float("{0:.7f}".format(probability)))
+def entropy(probabilities):
+    res = 0
+
+    for entry in probabilities.get_entries():
+        probability = probabilities.get_probability(entry)
+
+        if probability != 0:
+            res = res + probability * math.log(probability, 2)
+
+    return res * -1
+
+
+def joint_entropy(char_probabilities, pair_probabilities):
+    res = 0
+
+    for first_letter in ALPHABET:
+        for second_letter in ALPHABET:
+            joint_probability = pair_probabilities.get_probability(first_letter + second_letter)
+            second_letter_probability = char_probabilities.get_probability(second_letter)
+            probability = joint_probability / second_letter_probability
+
+            if probability != 0:
+                res = res + probability * math.log(probability, 2)
+
+    return res * -1
 
 
 def process_files(file_names):
@@ -116,18 +140,21 @@ def process_files(file_names):
         char_probabilities.add_entry(curr)
         pair_probabilities.add_entry(buffer)
 
-    for char in ALPHABET:
-        dest_file.write(format_probability(char_probabilities.get_probability(char)))
-        dest_file.write(' ')
-
+    dest_file.write(str(format_output(entropy(char_probabilities))))
     dest_file.write('\n')
 
-    for pair in PAIRS:
-        dest_file.write(format_probability(pair_probabilities.get_probability(pair)))
-        dest_file.write(' ')
+    dest_file.write(str(format_output(entropy(pair_probabilities))))
+    dest_file.write('\n')
+
+    dest_file.write(str(format_output(joint_entropy(char_probabilities, pair_probabilities))))
+    dest_file.write('\n')
 
     source_file.close()
     dest_file.close()
+
+
+def format_output(arg):
+    return str(float("{0:.7}".format(arg)))
 
 
 def main(argv):
