@@ -96,7 +96,7 @@ class ProbabilityCounter:
 
 
 def format_probability(probability):
-    return str(float("{0:.7f}".format(probability)))
+    return str(format(probability, '.7f'))
 
 
 def process_files(file_names):

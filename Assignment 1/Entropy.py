@@ -154,7 +154,7 @@ def process_files(file_names):
 
 
 def format_output(arg):
-    return str(float("{0:.7}".format(arg)))
+    return str(format(arg, '.7f'))
 
 
 def main(argv):
