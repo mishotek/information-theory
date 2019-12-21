@@ -109,18 +109,7 @@ def entropy(probabilities):
 
 
 def joint_entropy(char_probabilities, pair_probabilities):
-    res = 0
-
-    for first_letter in ALPHABET:
-        for second_letter in ALPHABET:
-            joint_probability = pair_probabilities.get_probability(first_letter + second_letter)
-            second_letter_probability = char_probabilities.get_probability(second_letter)
-            probability = joint_probability / second_letter_probability
-
-            if probability != 0:
-                res = res + probability * math.log(probability, 2)
-
-    return res * -1
+    return entropy(pair_probabilities) - entropy(char_probabilities)
 
 
 def process_files(file_names):
