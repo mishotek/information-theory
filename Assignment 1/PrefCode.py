@@ -2,6 +2,20 @@ import math
 import sys
 
 
+class QuerySet:
+
+    def __init__(self, items):
+        self.items = set(items)
+
+    def of_length(self, length):
+        for item in self.items:
+            if len(item) is length:
+                return item
+
+    def pop(self, item):
+        self.items.remove(item)
+
+
 def str_to_nums(string):
     arr = []
     nums = string.split(' ')
@@ -22,17 +36,66 @@ def craft(numbers):
     return res
 
 
+def decimal_to_binary(dec):
+    return "{0:b}".format(dec)
+
+
+def binary_to_decimal(binary):
+    length = len(binary)
+    decimal = 0
+
+    for i in range(length):
+        index = length - 1 - i
+
+        if binary[index] == '1':
+            decimal = decimal + 2 ** i
+
+    return decimal
+
+
+def increment_binary(binary):
+    return decimal_to_binary(binary_to_decimal(binary) + 1)
+
+
+def build_word(code_word, length):
+    while len(code_word) < length:
+        code_word = code_word + '0'
+    return code_word
+
+
+def increment_code(prev_code):
+    if '1' not in prev_code:
+        return prev_code[:len(prev_code) - 1] + '1'
+
+    binary = increment_binary(prev_code[prev_code.index('1'):])
+
+    while len(binary) < len(prev_code):
+        binary = '0' + binary
+
+    return binary
+
+
 def build_code(numbers):
     res = []
 
     sorted_numbers = sorted(numbers)
-    number = 0
-    padding = 0
+    curr_code = '0'
 
     for length in sorted_numbers:
-        res.append(build_word(length, padding, number))
+        code = build_word(curr_code, length)
+        res.append(code)
+        curr_code = increment_code(code)
 
-    return sorted_numbers
+    return res
+
+
+def print_code(code, lengths, dest_file):
+    items = QuerySet(code)
+
+    for length in lengths:
+        next_item = items.of_length(length)
+        items.pop(next_item)
+        dest_file.write(next_item + '\n')
 
 
 def process_files(file_names):
@@ -47,15 +110,10 @@ def process_files(file_names):
         return
 
     code = build_code(numbers)
-    print(numbers)
-    print(code)
+    print_code(code, numbers, dest_file)
 
     source_file.close()
     dest_file.close()
-
-
-def format_output(arg):
-    return str(format(arg, '.7f'))
 
 
 def main(argv):
