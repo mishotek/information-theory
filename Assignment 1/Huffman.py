@@ -84,12 +84,30 @@ def to_nodes(numbers):
     return nodes
 
 
+def node_to_code(node, code, codes):
+    if node.is_leaf():
+        codes.append(code)
+        return
+
+    node_to_code(node.left, code + '0', codes)
+    node_to_code(node.right, code + '1', codes)
+
+
+def tree_to_code(node):
+    codes = []
+    code = ''
+    node_to_code(node, code, codes)
+
+    return codes
+
+
 def build_code(frequencies):
     sorted_frequencies = sorted(frequencies)
 
     tree = build_tree(to_nodes(sorted_frequencies))
-    print(tree.right.value)
-    return tree
+    code = tree_to_code(tree)
+    print(code)
+    return code
 
 
 def process_files(file_names):
