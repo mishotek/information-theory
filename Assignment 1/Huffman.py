@@ -86,7 +86,7 @@ def to_nodes(numbers):
 
 def node_to_code(node, code, codes):
     if node.is_leaf():
-        codes.append(code)
+        codes.append((code, node.value))
         return
 
     node_to_code(node.left, code + '0', codes)
@@ -106,8 +106,18 @@ def build_code(frequencies):
 
     tree = build_tree(to_nodes(sorted_frequencies))
     code = tree_to_code(tree)
-    print(code)
+
     return code
+
+
+def print_code(code, frequencies, dest_file):
+    for frequency in frequencies:
+        for index in range(0, len(code)):
+            (code_word, freq) = code[index]
+            if freq is frequency:
+                dest_file.write(code_word + '\n')
+                code.pop(index)
+                break
 
 
 def process_files(file_names):
@@ -116,8 +126,8 @@ def process_files(file_names):
 
     n = source_file.readline()
     numbers = str_to_nums(source_file.readline())
-
     code = build_code(numbers)
+    print_code(code, numbers, dest_file)
 
     source_file.close()
     dest_file.close()
