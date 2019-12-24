@@ -1,26 +1,7 @@
-def process_files(file_names):
-    source_file = open(file_names[0], 'r')
-    dest_file = open(file_names[1], 'wb')
-
-    rounded = False
-
-    while True:
-        byte = source_file.read(8)
-        if not byte:
-            break
-        if len(byte) != 8:
-            byte = round_to_byte(byte)
-            rounded = True
-        dest_file.write(from_binary(byte))
-
-    if not rounded:
-        dest_file.write(from_binary('10000000'))
-
-    source_file.close()
-    dest_file.close()
+import sys
 
 
-def to_bytes(string, dest_file):
+def to_bytes(string, dest_file, should_round = False):
     rounded = False
 
     while len(string) > 0:
@@ -31,7 +12,7 @@ def to_bytes(string, dest_file):
             rounded = True
         dest_file.write(from_binary(byte))
 
-    if not rounded:
+    if not rounded and should_round:
         dest_file.write(from_binary('10000000'))
 
 
@@ -59,7 +40,7 @@ def build_code_dict(code_file):
     code = {}
 
     for letter in ALPHABET:
-        code_word = code_file.readline()
+        code_word = code_file.readline().rstrip('\n')
         code[letter] = code_word
 
     return code
@@ -76,16 +57,19 @@ def compress(codes, text_file, dest_file):
 
         buffer = buffer + codes[curr]
 
-    print(codes)
-    print(buffer)
+        if len(buffer) > 7:
+            len_to_convert = len(buffer) - (len(buffer) % 8)
+            to_bytes(buffer[:len_to_convert], dest_file)
+            buffer = buffer[len_to_convert:]
+
+    to_bytes(buffer, dest_file, True)
 
 
 def process_files(file_names):
     code_file = open(file_names[0], 'r', encoding="utf8")
     text_file = open(file_names[1], 'r', encoding="utf8")
-    dest_file = open(file_names[2], 'wb', encoding="utf8")
+    dest_file = open(file_names[2], 'wb')
 
-    print('-----')
     codes = build_code_dict(code_file)
     compress(codes, text_file, dest_file)
 
@@ -95,9 +79,12 @@ def process_files(file_names):
 
 
 def main(argv):
-    print('----')
     if len(argv) != 3:
         print('Wrong arguments')
         return
     else:
         process_files(argv)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
