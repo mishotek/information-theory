@@ -29,6 +29,22 @@ def process_files(file_names):
     dest_file.close()
 
 
+def read_binary(source_file):
+    buffer = ''
+
+    while True:
+        curr = source_file.read(1)
+
+        if not curr:
+            break
+
+        buffer += to_binary(curr)
+
+    last_index = buffer.rfind('1')
+
+    return buffer[:last_index]
+
+
 def to_binary(char):
     return ''.join('{0:08b}'.format(int(x), 'b') for x in char)
 
