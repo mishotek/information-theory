@@ -1,4 +1,5 @@
 import math
+import os
 import sys
 
 
@@ -18,6 +19,14 @@ class Alphabet:
 
     def get(self, elem):
         return self.dict[elem]
+
+    def size(self):
+        return len(self.dict)
+
+    def replace(self, old_elem, new_elem):
+        old_value = self.dict[old_elem]
+        del self.dict[old_elem]
+        self.dict[new_elem] = old_value
 
 
 def read_binary(source_file):
@@ -91,17 +100,56 @@ def decimal_to_binary(dec):
     return "{0:b}".format(dec)
 
 
-def compress(scr_file, dest_file):
+def lz_compress_index(code, alphabet_size):
+    binary_code = decimal_to_binary(code)
+    length = math.ceil(math.log(alphabet_size, 2))
+
+    while len(binary_code) < length:
+        binary_code = '0' + binary_code
+
+    return binary_code
+
+
+def lz_compress(to_compress, alphabet):
+    to_print = 2
+
+    compressed = ''
+    buffer = ''
+    for char in to_compress:
+        if alphabet.has(buffer):
+            code = alphabet.get(buffer)
+            alphabet_size = alphabet.size()
+            compressed = compressed + lz_compress_index(code, alphabet_size)
+            if to_print != 0:
+                to_print -= 1
+                print('Curr string:', buffer, 'Lex index:', alphabet.get(buffer), 'Now compressed:', compressed)
+            alphabet.replace(buffer, buffer + '0')
+            alphabet.push(buffer + '1')
+
+            buffer = ''
+        else:
+            buffer = buffer + char
+
+    # print(compressed)
+
+    return compressed
+
+
+def compress(scr_file, dest_file, file_size):
     to_compress = read_binary(scr_file)
-    gama_code = elias_gama_code(len(to_compress))
-    to_bytes(gama_code, dest_file)
+    gama_code = elias_gama_code(file_size)
+    alphabet = Alphabet()
+    alphabet.push('0')
+    alphabet.push('1')
+    compressed = lz_compress(to_compress, alphabet)
+    to_bytes(gama_code + compressed, dest_file, True)
 
 
 def process_files(file_names):
     scr_file = open(file_names[0], 'rb')
     dest_file = open(file_names[1], 'wb')
 
-    compress(scr_file, dest_file)
+    compress(scr_file, dest_file, os.path.getsize(file_names[0]))
 
     scr_file.close()
     dest_file.close()
