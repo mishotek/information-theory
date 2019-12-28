@@ -28,6 +28,9 @@ class Alphabet:
         del self.dict[old_elem]
         self.dict[new_elem] = old_value
 
+    def print(self):
+        print(self.dict)
+
 
 def read_binary(source_file):
     buffer = ''
@@ -40,9 +43,7 @@ def read_binary(source_file):
 
         buffer += to_binary(curr)
 
-    last_index = buffer.rfind('1')
-
-    return buffer[:last_index]
+    return buffer
 
 
 def to_binary(char):
@@ -110,27 +111,36 @@ def lz_compress_index(code, alphabet_size):
     return binary_code
 
 
-def lz_compress(to_compress, alphabet):
-    to_print = 2
+def lz_compress_bytes(buffer, alphabet):
+    code = alphabet.get(buffer)
+    alphabet_size = alphabet.size()
 
+    return lz_compress_index(code, alphabet_size)
+
+
+def pad_buffer(buffer, alphabet):
+    print('Padding')
+    while not alphabet.has(buffer):
+        buffer += '0'
+    return buffer
+
+
+def lz_compress(to_compress, alphabet):
     compressed = ''
     buffer = ''
     for char in to_compress:
+        buffer = buffer + char
+
         if alphabet.has(buffer):
-            code = alphabet.get(buffer)
-            alphabet_size = alphabet.size()
-            compressed = compressed + lz_compress_index(code, alphabet_size)
-            if to_print != 0:
-                to_print -= 1
-                print('Curr string:', buffer, 'Lex index:', alphabet.get(buffer), 'Now compressed:', compressed)
+            compressed = compressed + lz_compress_bytes(buffer, alphabet)
             alphabet.replace(buffer, buffer + '0')
             alphabet.push(buffer + '1')
 
             buffer = ''
-        else:
-            buffer = buffer + char
 
-    # print(compressed)
+    if len(buffer) > 0:
+        buffer = pad_buffer(buffer, alphabet)
+        compressed = compressed + lz_compress_bytes(buffer, alphabet)
 
     return compressed
 
