@@ -50,12 +50,14 @@ def to_binary(char):
     return ''.join('{0:08b}'.format(int(x), 'b') for x in char)
 
 
-def to_bytes(string, dest_file, should_round = False):
+def to_bytes(string, dest_file, should_round=False):
     rounded = False
+    index = 0
 
-    while len(string) > 0:
-        byte = string[:8]
-        string = string[8:]
+    while len(string) > index:
+        index += 8
+        byte = string[index - 8:index]
+
         if len(byte) != 8:
             byte = round_to_byte(byte)
             rounded = True
@@ -119,7 +121,6 @@ def lz_compress_bytes(buffer, alphabet):
 
 
 def pad_buffer(buffer, alphabet):
-    print('Padding')
     while not alphabet.has(buffer):
         buffer += '0'
     return buffer
