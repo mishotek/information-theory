@@ -14,6 +14,10 @@ class Matrix:
                 print(elem, end=''),
             print()
 
+    def print_diagonal(self):
+        for i in range(0, self.get_row_count()):
+            print(self.rows[i][i], end=''),
+
     @staticmethod
     def subtract_rows(row1, row2):
         for i in range(0, len(row1)):
@@ -32,9 +36,19 @@ class Matrix:
         has_one = row[row_index] == 1
 
         if not has_one:
-            self.swap_to_get_one(row_index, rows, swap_table)
+            self.get_one(row_index, rows, swap_table)
 
         self.elimination(self, row_index, rows)
+
+    def get_one(self, row_index, rows, swap_table):
+        row = rows[row_index]
+        index_to_swap = self.closest_index_of(row, 1, row_index + 1)
+
+        cant_get_one_by_swapping = index_to_swap == -1
+        if cant_get_one_by_swapping:
+            self.get_one_by_elimination(row_index, rows)
+        else:
+            self.swap_to_get_one(row_index, rows, swap_table)
 
     def swap_to_get_one(self, row_index, rows, swap_table):
         row = rows[row_index]
@@ -73,8 +87,22 @@ class Matrix:
         array[index1] = array[index2]
         array[index2] = temp
 
-    def elimination(self, self1, row_index, rows):
+    def elimination(self, row_index, rows):
         return 0
+
+    def get_one_by_elimination(self, index, rows):
+        row = rows[index]
+        row_to_subtract = self.get_row_with_value(rows, index, 1)
+        self.subtract_rows(row, row_to_subtract)
+
+    @staticmethod
+    def get_row_with_value(rows, index, value):
+        for row in rows:
+            if row[index] == value:
+                return row
+
+    def get_row_count(self):
+        return len(self.rows)
 
 
 def read_meta_data(line):
@@ -106,6 +134,7 @@ def process_files(file_names):
     matrix = build_matrix(scr_file)
     matrix.normalize()
     matrix.print()
+    matrix.print_diagonal()
 
     scr_file.close()
     dest_file.close()
