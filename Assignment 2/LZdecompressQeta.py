@@ -105,7 +105,6 @@ def start_decode(file_info, size, lexicon, fileName_to_write):
         index += len(curr_str)
 
     result = result[0: size*8]
-    print(result[size*8 - 100:])
     print(result)
     text = code_to_string(result, size)
     write_file(fileName_to_write, text)

@@ -82,9 +82,9 @@ def read_binary(source_file):
 
         buffer += to_binary(curr)
 
-    last_index = buffer.rfind('1')
+    # last_index = buffer.rfind('1')
 
-    return buffer[:last_index]
+    return buffer
 
 
 def to_binary(char):
@@ -147,8 +147,6 @@ def lz_decompress(to_decompress):
 
 def trim(string, gamma_code):
     text_length = gamma_to_decimal(gamma_code) * 8
-    print(string[text_length - 100:])
-    print(string)
     return string[:text_length]
 
 
@@ -156,7 +154,7 @@ def decompress(scr_file, dest_file):
     binary_file = read_binary(scr_file)
     to_decompress = get_encoded_text(binary_file)
     decompressed = trim(lz_decompress(to_decompress), extract_gamma(binary_file))
-    to_bytes(decompressed, dest_file, True)
+    to_bytes(decompressed, dest_file)
 
 
 def process_files(file_names):
