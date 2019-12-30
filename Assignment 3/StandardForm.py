@@ -38,7 +38,7 @@ class Matrix:
         if not has_one:
             self.get_one(row_index, rows, swap_table)
 
-        self.elimination(self, row_index, rows)
+        self.elimination(row_index, rows)
 
     def get_one(self, row_index, rows, swap_table):
         row = rows[row_index]
@@ -88,7 +88,14 @@ class Matrix:
         array[index2] = temp
 
     def elimination(self, row_index, rows):
-        return 0
+        iterator = Matrix.Iterator(rows, [row_index])
+
+        while True:
+            row = iterator.next()
+
+            if not row:
+                return
+            
 
     def get_one_by_elimination(self, index, rows):
         row = rows[index]
@@ -103,6 +110,33 @@ class Matrix:
 
     def get_row_count(self):
         return len(self.rows)
+
+    class Iterator:
+
+        def __init__(self, rows, rows_to_skip=[]):
+            self.rows = rows
+            self.rows_to_skip = rows_to_skip
+            self.index = self.get_initial_index(len(rows), rows_to_skip)
+
+        def next(self):
+            if self.index != -1 and len(self.rows) > self.index:
+                index = self.index
+                self.index = self.get_next_index(len(self.rows), self.rows_to_skip)
+                return self.rows[index]
+            return None
+
+        @staticmethod
+        def get_initial_index(length, rows_to_skip):
+            for i in range(0, length + 1):
+                if i not in rows_to_skip:
+                    return i
+            return -1
+
+        def get_next_index(self, length, rows_to_skip):
+            for i in range(self.index + 1, length + 1):
+                if i not in rows_to_skip:
+                    return i
+            return -1
 
 
 def read_meta_data(line):
