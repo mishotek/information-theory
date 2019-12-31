@@ -1,6 +1,34 @@
 import sys
 from numpy import array, argsort, concatenate, identity
-from StandardForm import file_to_matrix, standartize
+
+
+def file_to_matrix(f, sz):
+    matrix = []
+    matrix = f.read().split('\n')[:sz]
+    matrix = list(map(list, matrix))
+    for i in range(len(matrix)):
+        s = matrix[i]
+        matrix[i] = list(map(int, s))
+    return matrix
+
+
+def standartize(mx, ps, n, k):
+    for i in range(k):
+        if mx[i, i] == 0:
+            done = False
+            for j in range(i + 1, k):
+                if mx[j, i] == 1:
+                    mx[[i, j]], done = mx[[j, i]], True
+                    break
+            if not done:
+                for j in range(i + 1, n):
+                    if mx[i, j] == 1:
+                        mx[:, [i, j]], ps[[i, j]] = mx[:, [j, i]], ps[[j, i]]
+                        break
+        for j in range(k):
+            if j != i and mx[j, i] == 1:
+                mx[j, :] ^= mx[i, :]
+    return mx, ps
 
 
 def parity(mx, ps, n, k):

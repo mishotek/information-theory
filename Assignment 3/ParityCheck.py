@@ -1,9 +1,5 @@
 import sys
-from numpy import array, concatenate
-
-
-# ამ დავალების დაწერაში საბა ფოჩხუამ დამეხმარა და numpy იც მაგან დამაყენებინა
-# და შესაბამისათ ერეიზე ის პითონიზმებიც მან მასწავლა და შეიძლება დაემთხვეს
+from numpy import array, concatenate, argsort
 
 
 class Matrix:
@@ -20,14 +16,13 @@ class Matrix:
             print()
 
     def normalize(self):
-        swap_table = self.init_swap_table(self.get_col_count())
+        swap_table = array(self.init_swap_table(self.get_col_count()))
 
         for row_index in range(0, self.get_row_count()):
             has_one = self.rows[row_index, row_index] == 1
 
             if not has_one:
                 can_get_one_by_elimination = self.can_get_one_by_elimination(row_index)
-
                 if can_get_one_by_elimination:
                     self.set_one_by_elimination(row_index)
                 else:
@@ -81,7 +76,7 @@ class Matrix:
         swap_table = []
 
         for i in range(0, length):
-            swap_table.append(i + 1)
+            swap_table.append(i)
 
         return swap_table
 
@@ -125,7 +120,7 @@ class Matrix:
                     return i
             return -1
 
-    def write(self, dest_file, swap_table):
+    def write(self, dest_file):
         dest_file.write(str(self.get_col_count()))
         dest_file.write(' ')
         dest_file.write(str(self.get_row_count()))
@@ -143,29 +138,75 @@ class Matrix:
                 dest_file.write(str(num))
             dest_file.write('\n')
 
-        for index in swap_table:
-            dest_file.write(str(index))
-            dest_file.write(' ')
+    def to_parity_matrix(self, swap_table):
+        # აქ რაც numpy-ის რაღაცეები მაქვს გამოყენებული საბამ ჩამიგდო
+        # და შესაძლოა მის დავალებას დაემთხვეს რაღაც ნაწილი, რაგან როგორც
+        # მითხრა "ამეებს ვიყენებო და ბევრი არ იწვალო შენით დასაწერი არააო
+        # პითონს აქვს ტავისიო და მოყვებაო"
+        rotated_matrix = self.rows[:, self.get_row_count():].T
+        i_matrix = self.get_i_matrix(self.get_col_count() - self.get_row_count())
+        tmp = concatenate((rotated_matrix, i_matrix), axis=1)
+        res = tmp[:, argsort(swap_table)]
+        self.rows = array(res)
 
-    def to_parity_matrix(self):
-        rvrs = self.rows[:, self.get_row_count():].T
-        identity_matrix = Matrix.build_identity(self.get_col_count() - self.get_row_count())
-        self.rows = concatenate((rvrs, identity_matrix), axis=1)
+    def get_to_rotate(self, size):
+        res = []
+
+        starting_index = self.get_col_count() - size
+
+        iterator = Matrix.Iterator(self.rows)
+
+        while True:
+            row = iterator.next()
+
+            if row is None:
+                return res
+
+            res.append(row[starting_index:])
 
     @staticmethod
-    def build_identity(size):
-        arr = []
+    def matrix_of_size(rows, cols, val=0):
+        res = []
 
+        for r in range(0, rows):
+            arr = []
+            for c in range(0, cols):
+                arr.append(val)
+            res.append(arr)
+
+        return res
+
+    def rotated_matrix(self, to_rotate):
+        cols = len(to_rotate)
+        rows = len(to_rotate[0])
+
+        res = self.matrix_of_size(rows, cols)
+
+        for r in range(0, cols):
+            for c in range(0, rows):
+                res[c][r] = to_rotate[r][c]
+
+        return res
+
+    def get_i_matrix(self, size):
+        res = self.matrix_of_size(size, size)
         for i in range(0, size):
-            inner = []
-            for j in range(0, size):
-                inner.append(0)
-            arr.append(inner)
+            res[i][i] = 1
 
-        for i in range(0, size):
-            arr[i][i] = 1
+        return res
 
-        return arr
+    def join(self, m1, m2):
+        res = self.matrix_of_size(len(m1), len(m1[0]) + len(m2[0]))
+
+        for r in range(0, len(m1)):
+            for c in range(0, len(m1[0])):
+                res[r][c] = m1[r][c]
+
+        for r in range(0, len(m2)):
+            for c in range(0, len(m2[0])):
+                res[r][c + len(m1[0])] = m1[r][c]
+
+        return res
 
 
 def read_meta_data(line):
@@ -193,12 +234,12 @@ def process_files(file_names):
     scr_file = open(file_names[0], 'r')
     dest_file = open(file_names[1], 'w')
 
-    col_count, row_count = read_meta_data(scr_file.readline())
+    read_meta_data(scr_file.readline())
     matrix = build_matrix(scr_file)
     swap_table = matrix.normalize()
-    matrix.to_parity_matrix()
+    matrix.to_parity_matrix(swap_table)
 
-    matrix.write(dest_file, swap_table)
+    matrix.write(dest_file)
 
     scr_file.close()
     dest_file.close()
