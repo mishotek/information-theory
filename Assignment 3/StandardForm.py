@@ -16,7 +16,9 @@ class Matrix:
 
     def print_diagonal(self):
         for i in range(0, self.get_row_count()):
-            print(self.rows[i][i], end=''),
+            for j in range(0, self.get_row_count()):
+                print(self.rows[i][j], end=''),
+            print('')
 
     @staticmethod
     def subtract_rows(row1, row2):
@@ -28,24 +30,25 @@ class Matrix:
         for row_index in range(0, len(self.rows)):
             self.normalize_row(row_index, self.rows, swap_table)
 
-        print(swap_table)
+        return swap_table
 
     def normalize_row(self, row_index, rows, swap_table):
-        row = rows[row_index]
+        self.set_one_on_diagonal(row_index, rows, swap_table)
+        self.eliminate_in_others(row_index, rows)
 
+    def set_one_on_diagonal(self, row_index, rows, swap_table):
+        row = rows[row_index]
         has_one = row[row_index] == 1
 
-        if not has_one:
-            self.get_one(row_index, rows, swap_table)
+        if has_one:
+            return
 
-        self.elimination(row_index, rows)
+        self.set_one(row_index, rows, swap_table)
 
-    def get_one(self, row_index, rows, swap_table):
-        row = rows[row_index]
-        index_to_swap = self.closest_index_of(row, 1, row_index + 1)
+    def set_one(self, row_index, rows, swap_table):
+        cant_get_one_by_elimination = self.cant_get_one_by_elimination(rows, row_index)
 
-        cant_get_one_by_swapping = index_to_swap == -1
-        if cant_get_one_by_swapping:
+        if cant_get_one_by_elimination:
             self.get_one_by_elimination(row_index, rows)
         else:
             self.swap_to_get_one(row_index, rows, swap_table)
@@ -57,8 +60,29 @@ class Matrix:
         self.swap_array(swap_table, row_index, index_to_swap)
 
     @staticmethod
+    def cant_get_one_by_elimination(rows, index):
+        for i in range(index + 1, len(rows)):
+            row = rows[i]
+            if row[index] == 1:
+                return True
+        return False
+
+    def get_one_by_elimination(self, index, rows):
+        row = rows[index]
+        row_to_subtract = self.get_row_with_value(rows, index, 1)
+        self.subtract_rows(row, row_to_subtract)
+
+    @staticmethod
+    def get_row_with_value(rows, index, value):
+        for i in range(index + 1, len(rows)):
+            row = rows[i]
+            if row[index] == value:
+                return row
+        return None
+
+    @staticmethod
     def closest_index_of(row, to_find, starting_index=0):
-        for i in range(starting_index, len(row)):
+        for i in range(len(row), starting_index):
             if to_find == row[i]:
                 return i
         return -1
@@ -87,7 +111,7 @@ class Matrix:
         array[index1] = array[index2]
         array[index2] = temp
 
-    def elimination(self, row_index, rows):
+    def eliminate_in_others(self, row_index, rows):
         iterator = Matrix.Iterator(rows, [row_index])
 
         while True:
@@ -95,18 +119,9 @@ class Matrix:
 
             if not row:
                 return
-            
 
-    def get_one_by_elimination(self, index, rows):
-        row = rows[index]
-        row_to_subtract = self.get_row_with_value(rows, index, 1)
-        self.subtract_rows(row, row_to_subtract)
-
-    @staticmethod
-    def get_row_with_value(rows, index, value):
-        for row in rows:
-            if row[index] == value:
-                return row
+            if row[row_index] == 1:
+                self.subtract_rows(row, rows[row_index])
 
     def get_row_count(self):
         return len(self.rows)
@@ -138,6 +153,30 @@ class Matrix:
                     return i
             return -1
 
+    def write(self, dest_file, swap_table):
+        dest_file.write(str(self.get_col_count()))
+        dest_file.write(' ')
+        dest_file.write(str(self.get_row_count()))
+        dest_file.write('\n')
+
+        iterator = Matrix.Iterator(self.rows)
+
+        while True:
+            row = iterator.next()
+
+            if row is None:
+                break
+
+            for num in row:
+                dest_file.write(str(num))
+            dest_file.write('\n')
+
+        for index in swap_table:
+            dest_file.write(str(index))
+            dest_file.write(' ')
+
+        self.print_diagonal()
+
 
 def read_meta_data(line):
     return int(line.split(' ')[0]), int(line.split(' ')[1])
@@ -166,9 +205,9 @@ def process_files(file_names):
 
     col_count, row_count = read_meta_data(scr_file.readline())
     matrix = build_matrix(scr_file)
-    matrix.normalize()
-    matrix.print()
-    matrix.print_diagonal()
+    swap_table = matrix.normalize()
+
+    matrix.write(dest_file, swap_table)
 
     scr_file.close()
     dest_file.close()
