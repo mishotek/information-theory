@@ -1,7 +1,54 @@
 import sys
-from itertools import combinations
-
 from numpy import array, concatenate, argsort
+
+
+def round_to_byte(to_round):
+    rounded = to_round + '1'
+
+    if len(rounded) % 8 != 0:
+        zeros_to_add = 8 - (len(rounded) % 8)
+
+        for x in range(zeros_to_add):
+            rounded += '0'
+
+    return rounded
+
+
+def from_binary(byte):
+    return int(byte, 2).to_bytes(len(byte) // 8, byteorder='big')
+
+
+def to_bytes(string, dest_file, should_round = False):
+    rounded = False
+
+    while len(string) > 0:
+        byte = string[:8]
+        string = string[8:]
+        if len(byte) != 8:
+            byte = round_to_byte(byte)
+            rounded = True
+        dest_file.write(from_binary(byte))
+
+    if not rounded and should_round:
+        dest_file.write(from_binary('10000000'))
+
+
+def read_binary(source_file):
+    buffer = ''
+
+    while True:
+        curr = source_file.read(1)
+
+        if not curr:
+            break
+
+        buffer += to_binary(curr)
+
+    return buffer
+
+
+def to_binary(char):
+    return ''.join('{0:08b}'.format(int(x), 'b') for x in char)
 
 
 class Matrix:
@@ -215,14 +262,12 @@ def read_meta_data(line):
     return int(line.split(' ')[0]), int(line.split(' ')[1])
 
 
-def read_rows(scr_file):
+def build_matrix(scr_file, row_count):
     rows = []
 
-    while True:
+    while row_count > 0:
+        row_count -= 1
         row_str = scr_file.readline().rstrip('\n')
-
-        if not row_str:
-            return rows
 
         row = []
 
@@ -231,88 +276,99 @@ def read_rows(scr_file):
 
         rows.append(row)
 
+    tree = {}
 
-def subset_to_vector(subset, matrix):
-    vector = matrix.matrix_of_size(1, matrix.get_col_count(), 0)[0]
+    # Get rid of {
+    scr_file.readline()
 
-    for index in subset:
-        vector[index] = 1
+    while True:
+        line = scr_file.readline().rstrip('\n')
 
-    return vector
+        if not line or line == '}':
+            return Matrix(rows), tree
+
+        key = line.split(': ')[0]
+        value = line.split(': ')[1].rstrip(',')
+
+        tree[key] = value
 
 
-def to_string(vector):
-    string = ''
+def to_vector(buffer):
+    arr = []
 
-    for num in vector:
-        string += str(num)
+    for char in buffer:
+        arr.append([int(char)])
+
+    return array(arr)
+
+
+def rotate(multiplied):
+    res = []
+
+    for elem in multiplied:
+        res.append(elem[0])
+
+    return res
+
+
+def stringify_array(arr):
+    res = ''
+
+    for elem in arr:
+        res += str(elem)
+
+    return res
+
+
+def decode_code(tree, string, buffer_vector):
+    if string not in tree:
+        return ''
+
+    vector = to_vector(tree[string])
+    # ესეც საბასგან...
+    decoded = (buffer_vector - vector) % 2
+    rotated = rotate(decoded)
+    string = stringify_array(rotated)
 
     return string
 
 
-def store_code(code, vector, tree):
-    vector_as_str = to_string(vector)
-    tree[code] = vector_as_str
+def decode(matrix, tree, text):
+    result = ''
 
+    buffer = ''
 
-def build_coding_tree_over_subsets(matrix, distance, tree):
+    for char in text:
+        buffer += char
 
-    def identity(index):
-        return index
+        if len(buffer) == matrix.get_col_count():
+            vector = to_vector(buffer)
+            # ესეც საბასგან...
+            multiplied = matrix.rows.dot(vector) % 2
+            rotated = rotate(multiplied)
+            string = stringify_array(rotated)
+            result += decode_code(tree, string, vector)
 
-    for subset in combinations(list(map(identity, range(0, matrix.get_col_count()))), distance):
-        vector = subset_to_vector(subset, matrix)
-        code = ''.join(map(str, matrix.rows.dot(vector) % 2))
+            buffer = ''
 
-        if code not in tree:
-            store_code(code, vector, tree)
-
-
-def build_coding_tree(matrix, distances):
-    tree = {}
-
-    for distance in range(0, distances):
-        build_coding_tree_over_subsets(matrix, distance, tree)
-
-    return tree
-
-
-def read_e(e_file):
-    return int(e_file.readline())
-
-
-def write_dictionary(dst_file, dictionary):
-    dst_file.write('{\n')
-
-    for key in dictionary:
-        dst_file.write(key)
-        dst_file.write(': ')
-        dst_file.write(dictionary[key])
-        dst_file.write(',\n')
-
-    dst_file.write('}\n')
+    return result
 
 
 def process_files(file_names):
     scr_file = open(file_names[0], 'r')
-    e_file = open(file_names[1], 'r')
-    dest_file = open(file_names[2], 'w')
+    text_file = open(file_names[1], 'rb')
+    dest_file = open(file_names[2], 'wb')
 
-    read_meta_data(scr_file.readline())
-    rows = read_rows(scr_file)
-    matrix = Matrix(rows)
-    e = read_e(e_file)
-    swap_table = matrix.normalize()
-    matrix.to_parity_matrix(swap_table)
+    cols, rows = read_meta_data(scr_file.readline())
+    matrix, tree = build_matrix(scr_file, rows)
 
-    codes = build_coding_tree(matrix, e + 1)
+    text = read_binary(text_file)
+    decoded = decode(matrix, tree, text)
 
-    matrix.write(dest_file)
-
-    write_dictionary(dest_file, codes)
+    to_bytes(decoded, dest_file, True)
 
     scr_file.close()
-    e_file.close()
+    text_file.close()
     dest_file.close()
 
 

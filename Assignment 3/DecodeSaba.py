@@ -1,9 +1,57 @@
 import sys
-from StandardForm import standartize
-from ParityCheck import parity
-from Encode import file_to_str
-from numpy import argsort, array, reshape
+
+from numpy import argsort, array, reshape, identity, concatenate
 import itertools
+
+def parity(mx, ps, n, k):
+    mx = mx[:, k:].T
+    I = identity(n - k, int)
+    tmp = concatenate((mx, I), axis=1)
+    res = tmp[:, argsort(ps)]
+    return res
+
+
+def file_to_matrix(f, sz):
+    matrix = []
+    matrix = f.read().split('\n')[:sz]
+    matrix = list(map(list, matrix))
+    for i in range(len(matrix)):
+        s = matrix[i]
+        matrix[i] = list(map(int, s))
+    return matrix
+
+
+def standartize(mx, ps, n, k):
+    for i in range(k):
+        if mx[i, i] == 0:
+            done = False
+            for j in range(i + 1, k):
+                if mx[j, i] == 1:
+                    mx[[i, j]], done = mx[[j, i]], True
+                    break
+            if not done:
+                for j in range(i + 1, n):
+                    if mx[i, j] == 1:
+                        mx[:, [i, j]], ps[[i, j]] = mx[:, [j, i]], ps[[j, i]]
+                        break
+        for j in range(k):
+            if j != i and mx[j, i] == 1:
+                mx[j, :] ^= mx[i, :]
+    return mx, ps
+
+
+def file_to_str(sf):
+    res = ''
+    while True:
+        buf = sf.read(1024)
+        if buf:
+            for byte in buf:
+                byte_str = "{0:{f}8b}".format(byte, f='0')
+                res += byte_str
+        else:
+            break
+    return res
+
 
 
 def info_from_file(f, sz):
@@ -43,6 +91,7 @@ def main(my_code_fname, input_fname, dst_fname):
             vec = (vec - arr) % 2
             data_to_write += ''.join([str(v[0]) for v in vec])
 
+    print(data_to_write)
     # Write to File
     with open(dst_fname, 'wb+') as df:
         ind, byte = 0, 0
